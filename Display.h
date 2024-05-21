@@ -2,7 +2,7 @@
 #define DISPLAY_H
 
 void initializeLCD();
-void displayValues(float phValue, float temperature, const char* errorMsgs[], int errorCount);
+void displayValues(float phValue, float temperature, const char* classified, const char* errorMsgs[], int errorCount);
 
 
-#endif // DISPLAY_H
+#endif  // DISPLAY_H
