@@ -15,58 +15,6 @@ float voltage, phValue, temperature = 25;
 int free_memory_bytes;
 unsigned long previousMillis = 0;
 
-
-void initializeSerial() {
-  Serial.begin(115200);
-}
-
-void setup() {
-  initializeLCD();
-  initializeSerial();
-  initializePH();
-}
-
-void loop() {
-
-  free_memory_bytes = freeMemory();
-  bool reset_now = false;
-  int errorCount = 0;
-  const char* classified;
-  const char* errorMsgs[5];
-
-
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis > MAIN_UPDATE) {
-    previousMillis = millis();
-    voltage = analogRead(PH_PIN) / 1023.0 * PH_ANALOG_mV;
-
-
-    temperature = readTemperature();
-    if (!validateTemperature(temperature, errorMsgs, errorCount)) {
-      //temperature = 25.0;
-    }
-
-    phValue = readPHValue(voltage, temperature);
-    if (!validatePH(phValue, errorMsgs, errorCount)) {
-      //phValue = NAN;
-    }
-
-    if (free_memory_bytes < 512) {
-      errorMsgs[errorCount++] = "Memory < 512";
-      reset_now = true;
-    }
-    classified = describePH(phValue);
-
-    if (SOFT_RESET && reset_now) {
-      softReset();
-    }
-
-    displayValues(phValue, temperature, classified, errorMsgs, errorCount);
-    logValues(phValue, temperature, free_memory_bytes, voltage, classified, errorMsgs, errorCount);
-  }
-  calibratePH(voltage, temperature);
-}
-
 void softReset() {
   wdt_enable(WDTO_15MS);
   while (1)
@@ -90,15 +38,10 @@ void logValues(
   doc["volt"] = round(voltage) / 1000.0;
   doc["msg"] = classified;
 
-
-
-  // Add error messages to the JSON document
   JsonArray errors = doc.createNestedArray("errors");
   for (int i = 0; i < errorCount; i++) {
     errors.add(errorMsgs[i]);
   }
-
-
 
   serializeJson(doc, Serial);
   Serial.println();
@@ -142,4 +85,53 @@ const char* describePH(float phValue) {
   } else {
     return "Strongly Alkaline";
   }
+}
+
+void initializeSerial() {
+  Serial.begin(115200);
+}
+
+void setup() {
+  initializeLCD();
+  initializeSerial();
+  initializePH();
+}
+
+void loop() {
+  free_memory_bytes = freeMemory();
+  bool reset_now = false;
+  int errorCount = 0;
+  const char* classified;
+  const char* errorMsgs[5];
+
+
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis > MAIN_UPDATE) {
+    previousMillis = millis();
+    voltage = analogRead(PH_PIN) / 1023.0 * PH_ANALOG_mV;
+
+    temperature = readTemperature();
+    if (!validateTemperature(temperature, errorMsgs, errorCount)) {
+      //temperature = 25.0;
+    }
+
+    phValue = readPHValue(voltage, temperature);
+    if (!validatePH(phValue, errorMsgs, errorCount)) {
+      //phValue = NAN;
+    }
+
+    if (free_memory_bytes < 512) {
+      errorMsgs[errorCount++] = "Memory < 512";
+      reset_now = true;
+    }
+    classified = describePH(phValue);
+
+    if (SOFT_RESET && reset_now) {
+      softReset();
+    }
+
+    displayValues(phValue, temperature, classified, errorMsgs, errorCount);
+    logValues(phValue, temperature, free_memory_bytes, voltage, classified, errorMsgs, errorCount);
+  }
+  calibratePH(voltage, temperature);
 }

@@ -27,11 +27,11 @@ float readTemperature() {
 
   ds.reset();
   ds.select(addr);
-  ds.write(0x44, 1);  // start conversion, with parasite power on at the end
+  ds.write(0x44, 1);
 
   ds.reset();
   ds.select(addr);
-  ds.write(0xBE);  // Read Scratchpad
+  ds.write(0xBE);
 
   for (int i = 0; i < 9; i++) {
     data[i] = ds.read();

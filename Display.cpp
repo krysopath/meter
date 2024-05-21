@@ -21,7 +21,7 @@ void displayValues(
   const char* classified, 
   const char* errorMsgs[], 
   int errorCount) {
-    
+
   static int scrollIndex = 0;
   char lcd_mesg0[16];
   char lcd_mesg1[64] = "";
@@ -30,7 +30,6 @@ void displayValues(
 
   strncat(lcd_mesg1, classified, sizeof(lcd_mesg1) - strlen(lcd_mesg1) - 1);
 
-  // Construct the error message string
   for (int i = 0; i < errorCount; i++) {
     strncat(lcd_mesg1, ", ", sizeof(lcd_mesg1) - strlen(lcd_mesg1) - 1);
     strncat(lcd_mesg1, errorMsgs[i], sizeof(lcd_mesg1) - strlen(lcd_mesg1) - 1);
@@ -40,17 +39,14 @@ void displayValues(
     temperature = 25.0;
   }
 
-  // Format temperature and pH values for display
   dtostrf(temperature, 5, 1, buffer_temp);
   dtostrf(phValue, 5, 1, buffer_ph);
   snprintf(lcd_mesg0, sizeof(lcd_mesg0), "pH%s @%sC", buffer_ph, buffer_temp);
 
-  // Display the first line message
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(lcd_mesg0);
 
-  // Scroll the error message if it's too long
   if (strlen(lcd_mesg1) > 16) {
     char scrollBuffer[17];
     strncpy(scrollBuffer, lcd_mesg1 + scrollIndex, 16);
