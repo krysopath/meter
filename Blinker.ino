@@ -12,7 +12,7 @@
 #define MAIN_UPDATE 1000U
 
 float voltage, phValue, temperature = 25;
-int free_memory_bytes;
+const int free_memory_bytes;
 unsigned long previousMillis = 0;
 
 void softReset() {
@@ -49,11 +49,11 @@ void logValues(
 
 bool validateTemperature(float temperature, const char* errorMsgs[], int& errorCount) {
   if (isnan(temperature)) {
-    errorMsgs[errorCount++] = "T is NaN";
+    errorMsgs[errorCount++] = "T Probe gone!";
     return false;
   }
   if (temperature < -55.0 || temperature > 125.0) {
-    errorMsgs[errorCount++] = "T out of bounds";
+    errorMsgs[errorCount++] = "T out of bounds!";
     return false;
   }
   return true;
@@ -61,11 +61,11 @@ bool validateTemperature(float temperature, const char* errorMsgs[], int& errorC
 
 bool validatePH(float phValue, const char* errorMsgs[], int& errorCount) {
   if (isnan(phValue)) {
-    errorMsgs[errorCount++] = "pH is NaN";
+    errorMsgs[errorCount++] = "pH is NaN!";
     return false;
   }
   if (phValue < 0 || phValue > 14) {
-    errorMsgs[errorCount++] = "Probe gone";
+    errorMsgs[errorCount++] = "pH Probe gone!";
     return false;
   }
   return true;
@@ -98,11 +98,11 @@ void setup() {
 }
 
 void loop() {
-  free_memory_bytes = freeMemory();
-  bool reset_now = false;
-  int errorCount = 0;
+  const int free_memory_bytes = freeMemory();
   const char* classified;
   const char* errorMsgs[5];
+  bool reset_now = false;
+  int errorCount = 0;
 
 
   unsigned long currentMillis = millis();
