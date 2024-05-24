@@ -2,6 +2,7 @@
 #include <math.h>
 #include "Display.h"
 #include <Arduino.h>
+#include "Measurement.h"
 
 #define I2C_ADDR 0x27
 #define LCD_COLUMNS 16
@@ -16,9 +17,7 @@ void initializeLCD() {
 }
 
 void displayValues(
-  float phValue, 
-  float temperature, 
-  const char* classified, 
+  Measurement m,
   const char* errorMsgs[], 
   int errorCount) {
 
@@ -28,19 +27,19 @@ void displayValues(
   char buffer_ph[8];
   char buffer_temp[8];
 
-  strncat(lcd_mesg1, classified, sizeof(lcd_mesg1) - strlen(lcd_mesg1) - 1);
+  strncat(lcd_mesg1, m.classified, sizeof(lcd_mesg1) - strlen(lcd_mesg1) - 1);
 
   for (int i = 0; i < errorCount; i++) {
     strncat(lcd_mesg1, ", ", sizeof(lcd_mesg1) - strlen(lcd_mesg1) - 1);
     strncat(lcd_mesg1, errorMsgs[i], sizeof(lcd_mesg1) - strlen(lcd_mesg1) - 1);
   }
 
-  if (isnan(temperature)) {
-    temperature = 25.0;
+  if (isnan(m.temperature)) {
+    m.temperature = 25.0;
   }
 
-  dtostrf(temperature, 5, 1, buffer_temp);
-  dtostrf(phValue, 5, 1, buffer_ph);
+  dtostrf(m.temperature, 5, 1, buffer_temp);
+  dtostrf(m.pH, 5, 1, buffer_ph);
   snprintf(lcd_mesg0, sizeof(lcd_mesg0), "pH%s @%sC", buffer_ph, buffer_temp);
 
   lcd.clear();

@@ -1,19 +1,24 @@
+#include "Measurement.h"
+#include "Logging.h"
 #include "TemperatureSensor.h"
 #include "PH_Sensor.h"
 #include "Display.h"
-#include "Memory.h"
-#include <Arduino.h>
-#include <ArduinoJson.h>
 #include <avr/wdt.h>
+#include <Arduino.h>
+#include <avr/sleep.h>
+#include <avr/power.h>
+#include <avr/interrupt.h>
+
+#define WAKEUP_TIMER RTC_PERIOD_CYC8192_gc
 
 #define PH_PIN A1
-#define PH_ANALOG_mV 5000
 #define SOFT_RESET true
 #define MAIN_UPDATE 1000U
 
-float voltage, phValue, temperature = 25;
-const int free_memory_bytes;
+// const int free_memory_bytes;
 unsigned long previousMillis = 0;
+
+Measurement m;
 
 void softReset() {
   wdt_enable(WDTO_15MS);
@@ -21,117 +26,86 @@ void softReset() {
     ;
 }
 
-void logValues(
-  float phValue,
-  float temperature,
-  int free_memory_bytes,
-  float voltage,
-  const char* classified,
-  const char* errorMsgs[],
-  int errorCount) {
+void RTC_init(void) {
+  while (RTC.STATUS > 0)
+    ; /* Wait for all register to be synchronized */
 
-  StaticJsonDocument<200> doc;
+  PORTE.DIRSET = PIN2_bm;
 
-  doc["pH"] = round(phValue * 100.0) / 100.0;
-  doc["cels"] = temperature;
-  doc["free"] = free_memory_bytes;
-  doc["volt"] = round(voltage) / 1000.0;
-  doc["msg"] = classified;
-
-  JsonArray errors = doc.createNestedArray("errors");
-  for (int i = 0; i < errorCount; i++) {
-    errors.add(errorMsgs[i]);
-  }
-
-  serializeJson(doc, Serial);
-  Serial.println();
+  RTC.CLKSEL = RTC_CLKSEL_INT1K_gc;                      // set internal clock @ 1000hz Hz
+  RTC.PITINTCTRL = RTC_PI_bm;                            // enable PIT interrupt
+  RTC.PITCTRLA = RTC_PERIOD_CYC16384_gc | RTC_PITEN_bm;  // interrupt frq: 2 Hz
+  //RTC.CTRLA = RTC_PRESCALER_DIV2_gc | RTC_RTCEN_bm;
 }
 
-bool validateTemperature(float temperature, const char* errorMsgs[], int& errorCount) {
-  if (isnan(temperature)) {
-    errorMsgs[errorCount++] = "T Probe gone!";
-    return false;
-  }
-  if (temperature < -55.0 || temperature > 125.0) {
-    errorMsgs[errorCount++] = "T out of bounds!";
-    return false;
-  }
-  return true;
-}
-
-bool validatePH(float phValue, const char* errorMsgs[], int& errorCount) {
-  if (isnan(phValue)) {
-    errorMsgs[errorCount++] = "pH is NaN!";
-    return false;
-  }
-  if (phValue < 0 || phValue > 14) {
-    errorMsgs[errorCount++] = "pH Probe gone!";
-    return false;
-  }
-  return true;
-}
-
-const char* describePH(float phValue) {
-  if (phValue < 0 || phValue > 14) {
-    return "Invalid pH";
-  } else if (phValue < 3.0) {
-    return "Strongly Acidic";
-  } else if (phValue < 6.0) {
-    return "Weakly Acidic";
-  } else if (phValue < 8.0) {
-    return "Neutral";
-  } else if (phValue < 11.0) {
-    return "Weakly Alkaline";
-  } else {
-    return "Strongly Alkaline";
-  }
+ISR(RTC_PIT_vect) {
+  RTC.PITINTFLAGS = RTC_PI_bm;  // Clear interrupt flag by writing '1' (required)
+  PORTE.OUTTGL = PIN2_bm;       // toggle PE2
 }
 
 void initializeSerial() {
-  Serial.begin(115200);
+  Serial.begin(9600);
+}
+
+void blink() {
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(300);
+  digitalWrite(LED_BUILTIN, LOW);
 }
 
 void setup() {
+  digitalWrite(LED_BUILTIN, LOW);
+
   initializeLCD();
   initializeSerial();
   initializePH();
+
+  m.voltage = 1500;
+  //m.pH = 7;
+  m.temperature = 25;
+
+  pinMode(LED_BUILTIN, OUTPUT);
+
+  RTC_init();
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);  // Set sleep mode to POWER DOWN mode
+  sleep_enable();
 }
 
 void loop() {
-  const int free_memory_bytes = freeMemory();
-  const char* classified;
+
   const char* errorMsgs[5];
-  bool reset_now = false;
   int errorCount = 0;
 
-
+  bool reset_now = false;
   unsigned long currentMillis = millis();
+
+
   if (currentMillis - previousMillis > MAIN_UPDATE) {
     previousMillis = millis();
-    voltage = analogRead(PH_PIN) / 1023.0 * PH_ANALOG_mV;
-
-    temperature = readTemperature();
-    if (!validateTemperature(temperature, errorMsgs, errorCount)) {
-      //temperature = 25.0;
-    }
-
-    phValue = readPHValue(voltage, temperature);
-    if (!validatePH(phValue, errorMsgs, errorCount)) {
-      //phValue = NAN;
-    }
-
-    if (free_memory_bytes < 512) {
-      errorMsgs[errorCount++] = "Memory < 512";
-      reset_now = true;
-    }
-    classified = describePH(phValue);
 
     if (SOFT_RESET && reset_now) {
       softReset();
     }
 
-    displayValues(phValue, temperature, classified, errorMsgs, errorCount);
-    logValues(phValue, temperature, free_memory_bytes, voltage, classified, errorMsgs, errorCount);
+    m = NewMeasurement(PH_PIN);
+    Serial.println(m.pH);
+    if (!validateTemperature(
+          m.temperature,
+          errorMsgs, errorCount)) {
+      //temperature = 25.0;
+    }
+    if (!validatePH(
+          m.pH,
+          errorMsgs, errorCount)) {
+      //phValue = NAN;
+    }
+
+    displayValues(m, errorMsgs, errorCount);
+    logValues(m, errorMsgs, errorCount);
   }
-  calibratePH(voltage, temperature);
+  calibratePH(m.voltage, m.temperature);
+
+
+  blink();
+  //sleep_cpu();
 }

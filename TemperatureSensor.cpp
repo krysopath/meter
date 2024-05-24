@@ -3,7 +3,9 @@
 #include <Arduino.h>
 
 #define DS18S20_Pin 2
+
 OneWire ds(DS18S20_Pin);
+
 
 float readTemperature() {
   byte data[12];
