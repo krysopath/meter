@@ -2,7 +2,7 @@
 #include "TemperatureSensor.h"
 #include <Arduino.h>
 
-#define DS18S20_Pin 2
+#define DS18S20_Pin A2
 
 OneWire ds(DS18S20_Pin);
 

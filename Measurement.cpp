@@ -74,7 +74,7 @@ Measurement NewMeasurement(int pin) {
   m.voltage = analogRead(pin) / 1023.0 * PH_ANALOG_mV;
   m.temperature = readTemperature();
   m.pH = readPHValue(m.voltage, m.temperature);
-  Serial.println(m.pH);
+  //Serial.println(m.temperature);
   m.classified = describePH(m.pH);
   m.free_memory_bytes = freeMemory();
   return m;

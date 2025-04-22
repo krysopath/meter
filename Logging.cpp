@@ -9,9 +9,9 @@ void logValues(
   StaticJsonDocument<200> doc;
 
   doc["pH"] = round(m.pH * 100.0) / 100.0;
-  doc["cels"] = m.temperature;
-  doc["free"] = m.free_memory_bytes;
-  doc["volt"] = round(m.voltage) / 1000.0;
+  doc["celsius"] = round(m.temperature * 100.0) / 100.0;
+  doc["free_mem"] = m.free_memory_bytes;
+  doc["mV"] = round(m.voltage);
   doc["msg"] = m.classified;
 
   JsonArray errors = doc.createNestedArray("errors");
@@ -22,3 +22,16 @@ void logValues(
   serializeJson(doc, Serial);
   Serial.println();
 }
+
+
+void logSTARTUP() {
+
+  StaticJsonDocument<200> doc;
+  doc["msg"] = "s3SNOR1OOP init";
+
+  serializeJson(doc, Serial);
+  Serial.println();
+}
+
+
+

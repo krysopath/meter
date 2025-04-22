@@ -8,4 +8,7 @@ void logValues(
   const char* errorMsgs[],
   int errorCount);
 
+
+void logSTARTUP();
+
 #endif  // LOGGING_H

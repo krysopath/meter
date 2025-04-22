@@ -40,3 +40,15 @@ void calibratePH(float voltage, float temperature) {
   ph.calibration(voltage, temperature);
 }
 
+
+
+void handleSerialCalibration(float voltage, float temperature, char* cmd) {
+  //if (Serial.available() > 0) {
+    //String input = Serial.readStringUntil('\n');
+    //input.trim();
+    //char cmdBuffer[20];
+    //input.toCharArray(cmdBuffer, sizeof(cmdBuffer));
+    ph.calibration(voltage, temperature, cmd);
+  //}
+}
+
