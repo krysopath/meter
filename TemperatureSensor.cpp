@@ -2,10 +2,21 @@
 #include "TemperatureSensor.h"
 #include <Arduino.h>
 
+#include "max6675.h"
+
+int thermoDO = 4;
+int thermoCS = 5;
+int thermoCLK = 6;
+
+MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO);
+
 #define DS18S20_Pin A2
 
 OneWire ds(DS18S20_Pin);
 
+float readTemperatureMX6675() {
+  return thermocouple.readCelsius();
+} 
 
 float readTemperature() {
   byte data[12];

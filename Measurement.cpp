@@ -1,13 +1,16 @@
 #include <Arduino.h>
-#include "TemperatureSensor.h"
+#include "Measurement.h"
 #include "PH_Sensor.h"
+#include "TemperatureSensor.h"
+#include "ThermocoupleManager.h"
 
 #define PH_ANALOG_mV 5000
+
+extern ThermocoupleManager thermoManager;
 
 extern unsigned int __bss_end;
 extern unsigned int __heap_start;
 extern void *__brkval;
-
 
 int freeMemory() {
   int free_memory;
@@ -27,7 +30,7 @@ bool validateTemperature(float temperature, const char* errorMsgs[], int& errorC
   }
   if (temperature < -55.0 || temperature > 125.0) {
     errorMsgs[errorCount++] = "T out of bounds!";
-    return false;
+    return true;
   }
   return true;
 }
@@ -60,22 +63,18 @@ const char* describePH(float phValue) {
   }
 }
 
-struct Measurement {
-  float voltage;
-  float pH;
-  float temperature;
-  int free_memory_bytes;
-  char* classified;
-};
-
-Measurement NewMeasurement(int pin) {
+Measurement NewMeasurement(int analogPin) {
   Measurement m;
-  
-  m.voltage = analogRead(pin) / 1023.0 * PH_ANALOG_mV;
-  m.temperature = readTemperature();
+  m.voltage = analogRead(analogPin) / 1023.0 * PH_ANALOG_mV;
+  m.tempCount = thermoManager.sensorCount();
+
+  for (int i = 0; i < m.tempCount; i++) {
+    m.allTemperatures[i] = thermoManager.readSensor(i);
+  }
+
   m.pH = readPHValue(m.voltage, m.temperature);
-  //Serial.println(m.temperature);
   m.classified = describePH(m.pH);
   m.free_memory_bytes = freeMemory();
+
   return m;
 }

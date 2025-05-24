@@ -11,9 +11,12 @@ struct Measurement {
   float temperature;
   int free_memory_bytes;
   char* classified;
+
+  float allTemperatures[8];
+  int tempCount;
 };
 
-Measurement NewMeasurement(int pin);
+Measurement NewMeasurement(int analogPin);
 
 
 #endif  // MEASUREMENT_H

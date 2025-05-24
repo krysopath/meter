@@ -13,12 +13,30 @@
 
 #include <EEPROM.h>
 
+#include "ThermocoupleManager.h"
+
+// === Pins ===
+const int thermoDO = 4;
+const int thermoCLK = 6;
+const int csPins[] = {5, 7};
+const int phAnalogPin = A0;
+
+// === Thermocouple Manager ===
+ThermocoupleManager thermoManager(thermoCLK, thermoDO);
+
+
 #define WAKEUP_TIMER RTC_PERIOD_CYC8192_gc
 #define EEPROM_UPDATE_INTERVAL_ADDR 16
 
 
 #define PH_PIN A1
 #define DS18S20_Pin 2
+
+#define BUTTON_PIN A3
+#define MAX_ACCUMULATED_TIME (24UL * 60UL * 60UL * 1000UL) //24h
+
+unsigned long accumulatedRuntime = 0;
+
 
 #define SOFT_RESET true
 #define MAIN_UPDATE 5000U
@@ -38,7 +56,7 @@ void softReset() {
 }
 
 void initializeSerial() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 }
 
 void blink() {
@@ -77,6 +95,16 @@ void setup() {
   m.temperature = 25;
 
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+  for (int i = 0; i < sizeof(csPins)/sizeof(csPins[0]); i++) {
+    thermoManager.addSensor(csPins[i]);
+  }
+  // Optional: Manual calibration for each probe
+  // Example: Raw values seen at ice point and boiling point
+  thermoManager.calibrateSensor(0, 0, 100);  // Sensor 0
+  thermoManager.calibrateSensor(1, 0, 100);  // Sensor 1
+
   logSTARTUP();
   
 }
@@ -131,6 +159,16 @@ void handleSerialInput(float voltage, float temperature) {
   }
 }
 
+void handleTime() {
+  if (digitalRead(BUTTON_PIN) == LOW) {
+    Serial.println(F("Button pressed — runtime counter reset."));
+    accumulatedRuntime = 0;
+  }
+
+  if (accumulatedRuntime > MAX_ACCUMULATED_TIME) {
+    accumulatedRuntime = 0;
+  }
+}
 
 void loop() {
 
@@ -146,11 +184,15 @@ void loop() {
   if (currentMillis - previousMillis > mainUpdateInterval) {
     previousMillis = millis();
 
+    accumulatedRuntime += mainUpdateInterval;
+    handleTime();
+
     if (SOFT_RESET && reset_now) {
       softReset();
     }
 
     m = NewMeasurement(PH_PIN);
+
     if (!validateTemperature(
           m.temperature,
           errorMsgs, errorCount)) {
@@ -161,8 +203,9 @@ void loop() {
           errorMsgs, errorCount)) {
     }
 
-    displayValues(m, errorMsgs, errorCount);
-    logValues(m, errorMsgs, errorCount);
+    displayValues(m, errorMsgs, errorCount, accumulatedRuntime);
+    logValues(m, errorMsgs, errorCount, accumulatedRuntime);  
+      
   }
   calibratePH(m.voltage, m.temperature);
 

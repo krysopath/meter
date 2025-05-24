@@ -16,10 +16,24 @@ void initializeLCD() {
   lcd.backlight();
 }
 
+
+const char* formatRuntime(unsigned long ms) {
+  static char buffer[16];  // Static so it persists outside function
+  unsigned long totalSeconds = ms / 1000;
+  unsigned int hours = totalSeconds / 3600;
+  unsigned int minutes = (totalSeconds % 3600) / 60;
+  unsigned int seconds = totalSeconds % 60;
+
+  snprintf(buffer, sizeof(buffer), "%02u:%02u:%02u", hours, minutes, seconds);
+  return buffer;
+}
+
+
 void displayValues(
   Measurement m,
   const char* errorMsgs[], 
-  int errorCount) {
+  int errorCount,
+  unsigned long accumulatedRuntime) {
 
   static int scrollIndex = 0;
   char lcd_mesg0[16];
@@ -27,7 +41,7 @@ void displayValues(
   char buffer_ph[8];
   char buffer_temp[8];
 
-  strncat(lcd_mesg1, m.classified, sizeof(lcd_mesg1) - strlen(lcd_mesg1) - 1);
+  strncat(lcd_mesg1, formatRuntime(accumulatedRuntime), sizeof(lcd_mesg1) - strlen(lcd_mesg1) - 1);
 
   for (int i = 0; i < errorCount; i++) {
     strncat(lcd_mesg1, ", ", sizeof(lcd_mesg1) - strlen(lcd_mesg1) - 1);

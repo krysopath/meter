@@ -4,6 +4,7 @@
 #include "Measurement.h"
 
 void initializeLCD();
-void displayValues(Measurement m, const char* errorMsgs[], int errorCount);
+const char* formatRuntime(unsigned long ms);
+void displayValues(Measurement m, const char* errorMsgs[], int errorCount, unsigned long accumulatedRuntime);
 
 #endif  // DISPLAY_H

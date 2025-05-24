@@ -6,7 +6,8 @@
 void logValues(
   Measurement m,
   const char* errorMsgs[],
-  int errorCount);
+  int errorCount,
+  unsigned long accumulatedRuntime);
 
 
 void logSTARTUP();
